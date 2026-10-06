@@ -1,21 +1,11 @@
-# Arduino RGB Color Challenge
+# Arduino Color Mixer Challenge
 
-Each person will build a "color mixer" using an RGB LED and three knobs
-(potentiometers). Each knob controls one color:
+Each person will build a simple color-mixing game using three primary-color
+LEDs and two push buttons.
 
-- Red
-- Green
-- Blue
-
-The objective is to recreate specific target colors as quickly and accurately
-as possible.
-
-Examples:
-
-- Purple
-- Orange
-- Teal
-
+The objective is to create six target colors by selecting the correct LED
+combination. The Arduino Serial Monitor displays each target color and tells
+you whether your submission is correct.
 
 ## Materials (Per Person)
 
@@ -24,136 +14,500 @@ Examples:
 | Arduino Uno | 1 |
 | USB cable | 1 |
 | Breadboard | 1 |
-| Common cathode RGB LED | 1 |
-| 220Ω resistors | 3 |
-| 10kΩ potentiometers | 3 |
-| Jumper wires | 15–20 |
+| Red LED | 1 |
+| Yellow LED | 1 |
+| Blue LED | 1 |
+| Push buttons | 2 |
+| 220 ohm resistors | 3 |
+| Jumper wires | 1 set |
 | Laptop with Arduino IDE | 1 |
 
-## Understanding the RGB LED
+## Understanding the Color Mixer
 
-An RGB LED is essentially three LEDs in one package:
+The three LEDs represent the primary colors:
 
 - Red
-- Green
 - Blue
+- Yellow
 
-By changing the brightness of each color, you can create many different colors.
+The secondary colors are created by combining two primary-color LEDs.
 
-Examples:
+| Target color | LEDs that should be on |
+| --- | --- |
+| Red | Red |
+| Yellow | Yellow |
+| Blue | Blue |
+| Purple | Red + Blue |
+| Orange | Red + Yellow |
+| Green | Blue + Yellow |
 
-| Red | Green | Blue | Color |
-| --- | --- | --- | --- |
-| 255 | 0 | 0 | Red |
-| 0 | 255 | 0 | Green |
-| 0 | 0 | 255 | Blue |
-| 255 | 255 | 0 | Yellow |
-| 255 | 0 | 255 | Purple |
-| 0 | 255 | 255 | Teal |
-| 255 | 165 | 0 | Orange |
-| 255 | 255 | 255 | White |
+The six challenges are presented in a random order, so you will not know which
+color comes next.
+
+## Pin Assignments
+
+Use these pins exactly:
+
+| Component | Arduino pin |
+| --- | --- |
+| Red LED | 9 |
+| Blue LED | 10 |
+| Yellow LED | 11 |
+| NEXT button | 4 |
+| SUBMIT button | 3 |
+| Master ground | Any GND pin |
 
 ## Wiring Instructions
 
-### Step 1 – Connect the RGB LED
+### Step 1 – Connect the master ground
 
-Most common-cathode RGB LEDs have four legs:
+Connect one Arduino GND pin to the breadboard's negative or ground rail. Every
+component that needs ground connects to this shared rail.
 
-- Longest leg → GND
-- Red leg → Arduino Pin 9 through a 220Ω resistor
-- Green leg → Arduino Pin 10 through a 220Ω resistor
-- Blue leg → Arduino Pin 11 through a 220Ω resistor
+Do not connect the master ground rail to 5V. You do not need a separate
+Arduino GND connection for every component.
 
-Tip: RGB LEDs are not all wired the same internally. Check the LED's pinout
-before connecting it, or label the kits in advance.
+### Step 2 – Connect the LEDs
 
-### Step 2 – Connect the Potentiometers
+For each LED:
 
-Each potentiometer has three pins. For each one:
+- Connect the long leg to its assigned Arduino pin.
+- Connect the short leg through a 220 ohm resistor.
+- Connect the other leg of the resistor to the ground rail.
 
-- Left pin → 5V
-- Middle pin (wiper) → Analog input
-- Right pin → GND
+### Step 3 – Connect the buttons
 
-Assign them like this:
+Place both push buttons across the center bridge of the breadboard. For each
+button:
 
-| Potentiometer | Arduino Pin |
-| --- | --- |
-| Red control | A0 |
-| Green control | A1 |
-| Blue control | A2 |
+- Connect one side to its assigned Arduino pin.
+- Connect the other side to the ground rail.
 
-## Program
+The starter program uses the Arduino's internal pull-up resistors, so no
+additional button resistors are required.
 
-The Arduino continuously:
+## Starter Program
 
-1. Reads each potentiometer.
-2. Converts the reading (0–1023) to a PWM value (0–255).
-3. Updates the brightness of the corresponding LED color.
-
-## Your Challenge
-
-Below is the starter code with some parts left blank. Try to fill in the
-missing pieces (marked with `// TODO: ___`) before scrolling down to the full
-solution. Think about:
-
-- Are the LED pins inputs or outputs?
-- Which function reads a potentiometer's analog value?
-- How do you convert a 0–1023 reading into a 0–255 brightness value?
-- Which function sets an LED's brightness using PWM?
+Participants should begin with this program. It verifies that all three LEDs
+and both buttons are wired correctly before attempting the full challenge.
 
 ```cpp
-const int redLED = 9;
-const int greenLED = 10;
-const int blueLED = 11;
+const int RED_LED = 9;
+const int BLUE_LED = 10;
+const int YELLOW_LED = 11;
 
-const int redPot = A0;
-const int greenPot = A1;
-const int bluePot = A2;
+const int NEXT_BUTTON = 4;
+const int SUBMIT_BUTTON = 3;
+
+int step = 0;
 
 void setup() {
-  pinMode(redLED, ____);    // TODO: INPUT or OUTPUT?
-  pinMode(greenLED, ____);  // TODO: INPUT or OUTPUT?
-  pinMode(blueLED, ____);   // TODO: INPUT or OUTPUT?
+  pinMode(RED_LED, OUTPUT);
+  pinMode(BLUE_LED, OUTPUT);
+  pinMode(YELLOW_LED, OUTPUT);
+
+  pinMode(NEXT_BUTTON, INPUT_PULLUP);
+  pinMode(SUBMIT_BUTTON, INPUT_PULLUP);
+
+  Serial.begin(9600);
+
+  Serial.println("COLOR MIXER TEST");
+  Serial.println("-----------------");
+  Serial.println("Press NEXT to cycle through");
+  Serial.println("the LED combinations.");
+  Serial.println("Press SUBMIT to test the button.");
+  Serial.println();
+
+  showCombination();
 }
 
 void loop() {
-  // TODO: read each potentiometer (0–1023) and map it to 0–255
-  int red = map(analogRead(redPot), 0, 1023, 0, ____);
-  int green = ____;
-  int blue = ____;
+  // NEXT button
+  if (digitalRead(NEXT_BUTTON) == LOW) {
+    step++;
 
-  // TODO: send each brightness value to the matching LED pin
-  analogWrite(redLED, red);
-  analogWrite(greenLED, ____);
-  analogWrite(blueLED, ____);
+    if (step > 7) {
+      step = 0;
+    }
+
+    showCombination();
+
+    while (digitalRead(NEXT_BUTTON) == LOW) {
+      delay(10);
+    }
+
+    delay(200);
+  }
+
+  // SUBMIT button
+  if (digitalRead(SUBMIT_BUTTON) == LOW) {
+    Serial.println("SUBMIT BUTTON PRESSED!");
+
+    while (digitalRead(SUBMIT_BUTTON) == LOW) {
+      delay(10);
+    }
+
+    delay(200);
+  }
 }
+
+void showCombination() {
+  // Turn all LEDs off
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(BLUE_LED, LOW);
+  digitalWrite(YELLOW_LED, LOW);
+
+  if (step == 1) {
+    digitalWrite(RED_LED, HIGH);
+  }
+  else if (step == 2) {
+    digitalWrite(BLUE_LED, HIGH);
+  }
+  else if (step == 3) {
+    digitalWrite(YELLOW_LED, HIGH);
+  }
+  else if (step == 4) {
+    digitalWrite(RED_LED, HIGH);
+    digitalWrite(BLUE_LED, HIGH);
+  }
+  else if (step == 5) {
+    digitalWrite(RED_LED, HIGH);
+    digitalWrite(YELLOW_LED, HIGH);
+  }
+  else if (step == 6) {
+    digitalWrite(BLUE_LED, HIGH);
+    digitalWrite(YELLOW_LED, HIGH);
+  }
+  else if (step == 7) {
+    digitalWrite(RED_LED, HIGH);
+    digitalWrite(BLUE_LED, HIGH);
+    digitalWrite(YELLOW_LED, HIGH);
+  }
+
+  Serial.print("Current combination: ");
+
+  if (step == 0) {
+    Serial.println("ALL OFF");
+  }
+  else if (step == 1) {
+    Serial.println("RED");
+  }
+  else if (step == 2) {
+    Serial.println("BLUE");
+  }
+  else if (step == 3) {
+    Serial.println("YELLOW");
+  }
+  else if (step == 4) {
+    Serial.println("RED + BLUE");
+  }
+  else if (step == 5) {
+    Serial.println("RED + YELLOW");
+  }
+  else if (step == 6) {
+    Serial.println("BLUE + YELLOW");
+  }
+  else if (step == 7) {
+    Serial.println("RED + BLUE + YELLOW");
+  }
+}
+```
+
+## Testing the Starter Program
+
+Open the Serial Monitor and press NEXT repeatedly. You should see:
+
+```text
+ALL OFF
+RED
+BLUE
+YELLOW
+RED + BLUE
+RED + YELLOW
+BLUE + YELLOW
+RED + BLUE + YELLOW
+ALL OFF
+```
+
+Pressing SUBMIT should display:
+
+```text
+SUBMIT BUTTON PRESSED!
+```
+
+Once this works, the wiring is ready for the participant challenge.
+
+## Your Challenge
+
+The goal is to correctly create all six target colors. The Arduino randomly
+shuffles the challenges:
+
+- Red
+- Blue
+- Yellow
+- Orange
+- Purple
+- Green
+
+Press NEXT to cycle through the available LED combinations. Press SUBMIT when
+you think you have created the requested color. The Serial Monitor will tell
+you whether your answer is correct.
+
+You must correctly complete all six challenges.
+
+### Example: Correct Submission
+
+The first challenge might look like this:
+
+```text
+==========================
+COLOR MIXER CHALLENGE
+==========================
+CHALLENGE 1 OF 6
+CREATE: GREEN
+Press NEXT to cycle through the color combinations.
+Press SUBMIT when you have created the requested color.
+Current combination: ALL OFF
+```
+
+Press NEXT until the current combination is BLUE + YELLOW, then press SUBMIT.
+The Serial Monitor responds:
+
+```text
+===========================
+SUBMISSION RECEIVED
+===========================
+Your combination: BLUE + YELLOW
+********************************************
+CORRECT!
+********************************************
+BLUE + YELLOW = GREEN
+Challenge complete!
+Press NEXT for the next challenge.
+```
+
+### Example: Incorrect Submission
+
+If you choose the wrong combination, the Serial Monitor responds:
+
+```text
+===========================
+SUBMISSION RECEIVED
+===========================
+Your combination: RED + BLUE
+********************************************
+INCORRECT
+TRY AGAIN!
+********************************************
+Press NEXT to choose another color combination.
 ```
 
 ## Full Code (Solution)
 
 ```cpp
-const int redLED = 9;
-const int greenLED = 10;
-const int blueLED = 11;
+const int RED_LED = 9;
+const int BLUE_LED = 10;
+const int YELLOW_LED = 11;
 
-const int redPot = A0;
-const int greenPot = A1;
-const int bluePot = A2;
+const int NEXT_BUTTON = 4;
+const int SUBMIT_BUTTON = 3;
+
+const int TOTAL_CHALLENGES = 6;
+
+int challengeSteps[TOTAL_CHALLENGES] = {1, 2, 3, 5, 4, 6};
+int currentChallenge = 0;
+int step = 0;
+bool challengeComplete = false;
 
 void setup() {
-  pinMode(redLED, OUTPUT);
-  pinMode(greenLED, OUTPUT);
-  pinMode(blueLED, OUTPUT);
+  pinMode(RED_LED, OUTPUT);
+  pinMode(BLUE_LED, OUTPUT);
+  pinMode(YELLOW_LED, OUTPUT);
+
+  pinMode(NEXT_BUTTON, INPUT_PULLUP);
+  pinMode(SUBMIT_BUTTON, INPUT_PULLUP);
+
+  Serial.begin(9600);
+  randomSeed(analogRead(A0));
+  shuffleChallenges();
+
+  printChallengeHeader();
+  showCombination();
 }
 
 void loop() {
-  int red = map(analogRead(redPot), 0, 1023, 0, 255);
-  int green = map(analogRead(greenPot), 0, 1023, 0, 255);
-  int blue = map(analogRead(bluePot), 0, 1023, 0, 255);
+  if (digitalRead(NEXT_BUTTON) == LOW) {
+    if (challengeComplete) {
+      currentChallenge++;
 
-  analogWrite(redLED, red);
-  analogWrite(greenLED, green);
-  analogWrite(blueLED, blue);
+      if (currentChallenge >= TOTAL_CHALLENGES) {
+        Serial.println();
+        Serial.println("ALL 6 CHALLENGES COMPLETE!");
+        Serial.println("Congratulations!");
+      }
+      else {
+        challengeComplete = false;
+        step = 0;
+        printChallengeHeader();
+        showCombination();
+      }
+    }
+    else {
+      step++;
+
+      if (step > 7) {
+        step = 0;
+      }
+
+      showCombination();
+    }
+
+    waitForButtonRelease(NEXT_BUTTON);
+  }
+
+  if (digitalRead(SUBMIT_BUTTON) == LOW && !challengeComplete &&
+      currentChallenge < TOTAL_CHALLENGES) {
+    submitCombination();
+    waitForButtonRelease(SUBMIT_BUTTON);
+  }
+}
+
+void shuffleChallenges() {
+  for (int index = TOTAL_CHALLENGES - 1; index > 0; index--) {
+    int swapIndex = random(index + 1);
+    int temporary = challengeSteps[index];
+    challengeSteps[index] = challengeSteps[swapIndex];
+    challengeSteps[swapIndex] = temporary;
+  }
+}
+
+void printChallengeHeader() {
+  Serial.println();
+  Serial.println("==========================");
+  Serial.println("COLOR MIXER CHALLENGE");
+  Serial.println("==========================");
+  Serial.print("CHALLENGE ");
+  Serial.print(currentChallenge + 1);
+  Serial.print(" OF ");
+  Serial.println(TOTAL_CHALLENGES);
+  Serial.print("CREATE: ");
+  Serial.println(colorName(challengeSteps[currentChallenge]));
+  Serial.println("Press NEXT to cycle through the color combinations.");
+  Serial.println("Press SUBMIT when you have created the requested color.");
+}
+
+void showCombination() {
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(BLUE_LED, LOW);
+  digitalWrite(YELLOW_LED, LOW);
+
+  if (step == 1) {
+    digitalWrite(RED_LED, HIGH);
+  }
+  else if (step == 2) {
+    digitalWrite(BLUE_LED, HIGH);
+  }
+  else if (step == 3) {
+    digitalWrite(YELLOW_LED, HIGH);
+  }
+  else if (step == 4) {
+    digitalWrite(RED_LED, HIGH);
+    digitalWrite(BLUE_LED, HIGH);
+  }
+  else if (step == 5) {
+    digitalWrite(RED_LED, HIGH);
+    digitalWrite(YELLOW_LED, HIGH);
+  }
+  else if (step == 6) {
+    digitalWrite(BLUE_LED, HIGH);
+    digitalWrite(YELLOW_LED, HIGH);
+  }
+  else if (step == 7) {
+    digitalWrite(RED_LED, HIGH);
+    digitalWrite(BLUE_LED, HIGH);
+    digitalWrite(YELLOW_LED, HIGH);
+  }
+
+  Serial.print("Current combination: ");
+  Serial.println(combinationName(step));
+}
+
+void submitCombination() {
+  Serial.println();
+  Serial.println("===========================");
+  Serial.println("SUBMISSION RECEIVED");
+  Serial.println("===========================");
+  Serial.print("Your combination: ");
+  Serial.println(combinationName(step));
+  Serial.println("********************************************");
+
+  if (step == challengeSteps[currentChallenge]) {
+    Serial.println("CORRECT!");
+    Serial.println("********************************************");
+    Serial.print(combinationName(step));
+    Serial.print(" = ");
+    Serial.println(colorName(challengeSteps[currentChallenge]));
+    Serial.println("Challenge complete!");
+    Serial.println("Press NEXT for the next challenge.");
+    challengeComplete = true;
+  }
+  else {
+    Serial.println("INCORRECT");
+    Serial.println("TRY AGAIN!");
+    Serial.println("********************************************");
+    Serial.println("Press NEXT to choose another color combination.");
+  }
+}
+
+const char* combinationName(int combination) {
+  if (combination == 1) {
+    return "RED";
+  }
+  if (combination == 2) {
+    return "BLUE";
+  }
+  if (combination == 3) {
+    return "YELLOW";
+  }
+  if (combination == 4) {
+    return "RED + BLUE";
+  }
+  if (combination == 5) {
+    return "RED + YELLOW";
+  }
+  if (combination == 6) {
+    return "BLUE + YELLOW";
+  }
+  if (combination == 7) {
+    return "RED + BLUE + YELLOW";
+  }
+  return "ALL OFF";
+}
+
+const char* colorName(int combination) {
+  if (combination == 1) {
+    return "RED";
+  }
+  if (combination == 2) {
+    return "BLUE";
+  }
+  if (combination == 3) {
+    return "YELLOW";
+  }
+  if (combination == 4) {
+    return "PURPLE";
+  }
+  if (combination == 5) {
+    return "ORANGE";
+  }
+  return "GREEN";
+}
+
+void waitForButtonRelease(int buttonPin) {
+  while (digitalRead(buttonPin) == LOW) {
+    delay(10);
+  }
+
+  delay(200);
 }
 ```
